@@ -60,319 +60,41 @@ input.f{background:var(--s1);border:1px solid var(--bd);border-radius:8px;paddin
 label{font-size:12px;color:var(--mu)}
 #toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:#1d1724;border:1px solid var(--bd2);padding:8px 16px;border-radius:10px;z-index:9;display:none}
 .spin{width:18px;height:18px;border:2px solid var(--bd);border-top-color:var(--violet);border-radius:50%;animation:r 1s linear infinite;margin:30px auto}@keyframes r{to{transform:rotate(360deg)}}
-#auth{max-width:340px;margin:12vh auto;text-align:center}.menu{display:none}
+/* Modal Overlay for Login */
+#auth-modal{position:fixed;inset:0;background:rgba(0,0,0,0.8);display:none;place-items:center;z-index:999}
+#auth-modal .card{max-width:340px;width:100%;text-align:center}
 audio{margin-top:10px;width:100%;height:32px;}
 @media(max-width:860px){body{padding:0}.app{grid-template-columns:1fr;height:100vh;border-radius:0;border:0;padding:0}aside{position:fixed;inset:0 30% 0 0;z-index:5;background:#050306;transform:translateX(-100%);transition:.2s;padding:12px}aside.open{transform:none}.menu{display:inline-flex}.grid3,.grid2,.cards{grid-template-columns:1fr}.dock{padding:0 12px 12px}.msgs{padding:10px 14px}.stats{grid-template-columns:1fr}}
 </style></head><body>
-<div id="toast"></div><div id="root"></div>
-<script>
-// ====== CONFIG: Supabase Keys Filled ======
-const CFG={url:'https://smdonarsvrjtblemaktr.supabase.co',anon:'sb_publishable_n1UAJ3E40NClzxZXy2NRzg_HSfrk1di'};
-// ==========================================
-const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const P={plus:'M12 5v14M5 12h14',chat:'M21 12a8 8 0 0 1-11.5 7.2L4 20l1-4.5A8 8 0 1 1 21 12z',arch:'M3 4h18v4H3zM5 8v12h14V8M10 12h4',lib:'M4 4v16M9 4v16M14 6l5 14',fold:'M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',img:'M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M9 9h.01',sl:'M5 3h10l4 4v14H5zM14 3v5h5',code:'M8 8l-5 4 5 4M16 8l5 4-5 4M14 5l-4 14',key:'M14 10a4 4 0 1 0-3.5 4L13 16.5V19h3v-2h2l2-2zM8 10h.01',card:'M3 6h18v12H3zM3 10h18',gear:'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM19 12l2-1-2-4-2 .7-1.5-1L15 4h-4l-.5 2.7-1.5 1L7 7l-2 4 2 1v1l-2 1 2 4 2-.7 1.5 1L11 20h4l.5-2.7 1.5-1 2 .7 2-4-2-1z',chart:'M4 20V10M10 20V4M16 20v-7M22 20H2',home:'M3 11l9-8 9 8M5 10v10h14V10',send:'M12 19V5M5 12l7-7 7 7',mic:'M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3',clip:'M20 11l-8.5 8.5a5 5 0 0 1-7-7L13 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L14 7',ref:'M20 5v5h-5M4 19v-5h5M5 10a7 7 0 0 1 12-3l3 3M19 14a7 7 0 0 1-12 3l-3-3',spark:'M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z',exp:'M12 15V3M7 8l5-5 5 5M4 17v4h16v-4',bolt:'M13 2L4 14h7l-1 8 9-12h-7z',dollar:'M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6',menu:'M3 6h18M3 12h18M3 18h18',trend:'M3 17l6-6 4 4 8-8M15 7h6v6',db:'M4 6c0-2 16-2 16 0s-16 2-16 0zM4 6v12c0 2 16 2 16 0V6M4 12c0 2 16 2 16 0',cpu:'M7 7h10v10H7zM9 3v4M15 3v4M9 17v4M15 17v4M3 9h4M3 15h4M17 9h4M17 15h4',grid:'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',out:'M9 4H5v16h4M16 8l4 4-4 4M20 12H9',bulb:'M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z'};
-const ic=n=>`<svg class="i" viewBox="0 0 24 24"><path d="${P[n]}"/></svg>`;
-const toast=m=>{const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display='none',3200)};
-const sb=CFG.url?supabase.createClient(CFG.url,CFG.anon):null;
-const S=()=>JSON.parse(localStorage.getItem('venom_s')||'{}');
-const MODES={chat:{sys:''},image:{sys:'You are an image-prompt specialist. Turn the user idea into a detailed, production-ready image generation prompt plus 3 style variations.',ph:'Describe the image you want…'},slides:{sys:'You are a presentation designer. Output a slide-by-slide outline: title, 3-5 bullets, speaker notes.',ph:'Topic for your presentation…'},dev:{sys:'You are a senior software engineer. Give clean, production-ready code with brief explanations.',ph:'Describe what to build or debug…'}};
-let U=null,conv=null,msgs=[],busy=false,mode='chat',project=null;
-
-function boot(){
- if(!sb){$('#root').innerHTML=`<div id="auth" class="card"><div class="orb" style="margin:0 auto 16px"></div><h2>Setup needed</h2><p class="mu" style="margin:10px 0">Open <b>index.html</b> and check your CFG keys.</p></div>`;return}
- sb.auth.getSession().then(({data})=>{U=data.session?.user||null;U?shell():login()});
-}
-function login(){$('#root').innerHTML=`<div id="auth" class="card"><div class="orb" style="margin:0 auto 12px"></div><h2>VENOM V1</h2><p class="mu" style="margin-bottom:14px">Sign in to continue</p><input id="em" class="f" type="email" placeholder="Email" autocomplete="email"><input id="pw" class="f" type="password" placeholder="Password" autocomplete="current-password"><button class="btn p" id="si" style="width:100%;justify-content:center">Sign in</button><button class="btn" id="su" style="width:100%;justify-content:center;margin-top:8px">Create account</button></div>`;
- const go=async(up)=>{const e=$('#em').value,p=$('#pw').value;const r=up?await sb.auth.signUp({email:e,password:p}):await sb.auth.signInWithPassword({email:e,password:p});if(r.error)return toast(r.error.message);if(up&&!r.data.session)return toast('Check your email to confirm, then sign in.');U=r.data.user;shell()};
- $('#si').onclick=()=>go(0);$('#su').onclick=()=>go(1)}
-const NAV=[['chat','Chat','chat','#/chat'],['archived','Archived','arch','#/archived'],['library','Library','lib','#/library']];
-const WS=[['image','Image Generator','img','#/mode/image'],['slides','AI Presentation','sl','#/mode/slides'],['dev','Developer Assistant','code','#/mode/dev']];
-const ACC=[['api','API Dashboard','chart','#/api'],['credits','Credit & Usage','spark','#/credits'],['keys','API Keys','key','#/keys'],['billing','Billing','card','#/billing'],['settings','Settings','gear','#/settings']];
-function shell(){
- const item=a=>`<a class="nav" data-k="${a[0]}" href="${a[3]}" style="text-decoration:none">${ic(a[2])}${a[1]}</a>`;
- $('#root').innerHTML=`<div class="app"><aside id="sd"><div class="brand"><span class="logo"></span>VENOM V1</div>
- <button class="newchat" id="nc">${ic('plus')}New Chat</button><h6>Features</h6>${NAV.map(item).join('')}
- <h6>Workspaces</h6><button class="nav" id="np">${ic('fold')}New Project</button>${WS.map(item).join('')}
- <h6>Account</h6>${ACC.map(item).join('')}<button class="nav" id="so">${ic('out')}Sign out</button>
- <div class="up">${ic('spark')}<b>Credits</b><span id="upb">…</span><button id="upg">Billing</button></div></aside><main id="mn"></main></div>`;
- $('#nc').onclick=()=>{conv=null;msgs=[];project=null;mode='chat';location.hash='#/chat';route()};
- $('#np').onclick=()=>{const n=prompt('Project name');if(n){project=n.trim();conv=null;msgs=[];mode='chat';location.hash='#/chat';toast('Project "'+project+'" — new chats are saved into it');route()}};
- $('#so').onclick=async()=>{await sb.auth.signOut();U=null;login()};$('#upg').onclick=()=>location.hash='#/billing';
- route();refreshBal()}
-async function refreshBal(){const{data}=await sb.from('profiles').select('*').single();if(data&&$('#upb'))$('#upb').textContent=data.credit_balance.toLocaleString()+' credits left';return data}
-addEventListener('hashchange',()=>U&&route());
-function route(){const h=location.hash.split('/');const v=h[1]||'chat';const m=$('#mn');if(!m)return;
- document.querySelectorAll('.nav[data-k]').forEach(a=>a.classList.toggle('on',a.dataset.k===(v==='mode'?h[2]:v)));
- $('#sd')?.classList.remove('open');m.className=['api','keys','billing'].includes(v)?'mint':v==='credits'?'cr':'';
- if(v==='mode'){mode=h[2];conv=null;msgs=[];return chatView()}
- if(v==='chat'){if(h[2]&&h[2]!==conv)return openConv(h[2]);return chatView()}
- ({archived:listView,library:listView,credits:creditsView,api:apiView,keys:keysView,billing:billingView,settings:settingsView}[v]||chatView)(v)}
-const menuBtn=`<button class="pill menu" onclick="$('#sd').classList.toggle('open')" aria-label="Menu">${ic('menu')}</button>`;
-function modelOpts(){const ms=(S().models||'').split(',').map(x=>x.trim()).filter(Boolean);return ms.length?ms:['(set models in Settings)']}
-async function openConv(id){const{data}=await sb.from('messages').select('*').eq('conversation_id',id).order('created_at');conv=id;msgs=(data||[]).map(m=>({role:m.role,content:m.content,audioUrl:m.audio_url}));location.hash='#/chat';chatView()}
-function chatView(){
- const m=$('#mn'),md=MODES[mode]||MODES.chat;
- m.innerHTML=`<div class="top"><div style="display:flex;gap:8px">${menuBtn}<label class="pill"><select id="md" aria-label="Model">${modelOpts().map(x=>`<option>${esc(x)}</option>`)}</select></label></div>
- <div style="display:flex;gap:8px"><a class="pill" href="#/settings" style="color:inherit;text-decoration:none">Configuration ${ic('gear')}</a><button class="pill" id="ex">Export ${ic('exp')}</button>${conv?`<button class="pill" id="ar">Archive ${ic('arch')}</button>`:''}</div></div>
- ${msgs.length?`<div class="msgs" id="ms"></div>`:`<div class="hero"><div class="orb"></div><h1>${mode==='chat'?'Ready to Create Something New?':({image:'What shall we picture?',slides:'Let’s build a deck',dev:'What are we building?'})[mode]}</h1>${project?`<span class="tag">Project: ${esc(project)}</span>`:''}</div>`}
- <div class="dock">${msgs.length?'':`<div class="chips">${[['Create Image','img','Create an image of '],['Brainstorm','bulb','Brainstorm ideas for '],['Make a plan','sl','Make a plan for ']].map(c=>`<button class="pill ch" data-t="${c[2]}">${c[0]} ${ic(c[1])}</button>`).join('')}</div>`}
- <div class="comp"><textarea id="in" rows="2" placeholder="${md.ph||'Ask Anything…'}" aria-label="Message"></textarea>
- <div class="row"><button id="at">${ic('clip')}Attach</button><button id="st">${ic('gear')}Settings</button><button id="op">${ic('grid')}Options</button><span class="sp"></span><button class="mic" id="mc" aria-label="Voice">${ic('mic')}</button><button class="send" id="sn" aria-label="Send">${ic('send')}</button></div></div>
- ${msgs.length?'':`<div class="cards">${[['img','Image Generator','Create Image','Create high-quality images instantly from text.','image'],['sl','AI Presentation','Make Slides','Turn ideas into engaging, professional presentations.','slides'],['code','Dev Assistant','Generate Code','Generate clean, production ready code in seconds.','dev']].map(c=>`<button class="fc" data-m="${c[4]}"><div>${ic(c[0])}<span class="tag">${c[2]}</span></div><b>${c[1]}</b>${c[3]}</button>`).join('')}</div>`}</div>`;
- if(msgs.length)renderMsgs();
- const inp=$('#in');inp.focus();inp.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}};$('#sn').onclick=send;
- document.querySelectorAll('.ch').forEach(b=>b.onclick=()=>{inp.value=b.dataset.t;inp.focus()});
- document.querySelectorAll('.fc').forEach(b=>b.onclick=()=>location.hash='#/mode/'+b.dataset.m);
- $('#st').onclick=$('#op').onclick=()=>location.hash='#/settings';
- $('#at').onclick=()=>{const f=document.createElement('input');f.type='file';f.accept='.txt,.md,.json,.csv,.js,.py,.html';f.onchange=async()=>{const t=await f.files[0].text();inp.value+=`\n\n[${f.files[0].name}]\n`+t.slice(0,20000)};f.click()};
- $('#mc').onclick=()=>{const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R)return toast('Voice input not supported in this browser');const r=new R();r.onresult=e=>inp.value+=e.results[0][0].transcript;r.start();toast('Listening…')};
- $('#ex').onclick=()=>{if(!msgs.length)return toast('Nothing to export yet');const b=new Blob([msgs.map(x=>`## ${x.role}\n${x.content}`).join('\n\n')],{type:'text/markdown'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='chat.md';a.click()};
- if($('#ar'))$('#ar').onclick=async()=>{await sb.from('conversations').update({archived:true}).eq('id',conv);conv=null;msgs=[];toast('Archived');location.hash='#/archived'}}
-
-function renderMsgs(){
- const el=$('#ms');if(!el)return;
- el.innerHTML=msgs.map(m=>`
-  <div class="m ${m.role==='user'?'u':'a'}">
-    ${fmt(m.content)}
-    ${m.audioUrl ? `<br><audio controls src="${esc(m.audioUrl)}"></audio>` : ''}
-  </div>`).join('');
- el.scrollTop=1e9;
-}
-function fmt(t){return esc(t).replace(/```(\w*)\n?([\s\S]*?)```/g,(_,l,c)=>`<pre><code>${c}</code></pre>`)}
-
-async function generateVoice(text, index) {
- try {
-  // Edge-TTS public cloud endpoint or local backend wrapper if hosted together
-  const r = await fetch('https://edge-tts-api.hf.space/text-to-speech', { // or your python backend
-   method: 'POST',
-   headers: {'Content-Type': 'application/json'},
-   body: JSON.stringify({text: text, voice: 'hi-IN-SwaraNeural'})
-  });
-  if(r.ok) {
-   const blob = await r.blob();
-   const url = URL.createObjectURL(blob);
-   msgs[index].audioUrl = url;
-   renderMsgs();
-  }
- } catch(e) {
-  // If voice server isn't hit, we gracefully skip audio without breaking chat
- }
-}
-
-async function send(){
- const inp=$('#in'),text=inp.value.trim();if(!text||busy)return;const s=S();
- if(!s.endpoint)return toast('Set your model endpoint in Settings first');
- busy=true;const model=$('#md')?.value;
- if(!conv){const{data,error}=await sb.from('conversations').insert({title:text.slice(0,48),project}).select().single();if(error){busy=false;return toast(error.message)}conv=data.id}
- const first=!msgs.length;msgs.push({role:'user',content:text});msgs.push({role:'assistant',content:''});const aiMsgIdx = msgs.length - 1;
- if(first)chatView();else{inp.value='';renderMsgs()}
- const sys=(MODES[mode]||{}).sys;const body={model,stream:true,messages:[...(sys?[{role:'system',content:sys}]:[]),...msgs.slice(0,-2)]};
- await sb.from('messages').insert({conversation_id:conv,role:'user',content:text,model});
- const t0=Date.now();let ok=true,out='';
- try{const r=await fetch(s.endpoint,{method:'POST',headers:{'Content-Type':'application/json',...(s.apikey?{Authorization:'Bearer '+s.apikey}:{})},body:JSON.stringify(body)});
-  if(!r.ok)throw new Error('Model server returned '+r.status);
-  const rd=r.body.getReader(),dc=new TextDecoder();let buf='';
-  for(;;){const{done,value}=await rd.read();if(done)break;buf+=dc.decode(value,{stream:true});const ls=buf.split('\n');buf=ls.pop();
-   for(const l of ls){if(!l.startsWith('data:'))continue;const d=l.slice(5).trim();if(d==='[DONE]')continue;try{const j=JSON.parse(d);out+=j.choices?.[0]?.delta?.content??j.choices?.[0]?.text??''}catch{}}
-   msgs[aiMsgIdx].content=out;renderMsgs()}
- }catch(e){ok=false;out=out||'⚠ '+e.message;msgs[aiMsgIdx].content=out;renderMsgs();toast(e.message)}
- 
- // Trigger Voice Generation after text is complete
- if(ok && out) { generateVoice(out, aiMsgIdx); }
-
- const credits=Math.max(1,Math.ceil((text.length+out.length)/4/1000));
- await sb.from('usage_events').insert({model,credits:ok?credits:0,status:ok?'success':'error',duration_ms:Date.now()-t0,kind:mode});
- if(ok)await sb.from('messages').insert({conversation_id:conv,role:'assistant',content:out,model});
- busy=false;refreshBal()}
-
-async function listView(v){
- const arch=location.hash.includes('archived');const m=$('#mn');m.innerHTML=`<div class="top">${menuBtn}<span></span></div><div class="pg"><h1>${arch?'Archived':'Library'}</h1><p class="sub">${arch?'Archived conversations':'All your conversations, grouped by project'}</p><div class="spin"></div></div>`;
- const{data,error}=await sb.from('conversations').select('*').eq('archived',arch).order('created_at',{ascending:false});
- const pg=$('.pg');if(error)return pg.lastChild.outerHTML=`<div class="hint">${esc(error.message)}</div>`;
- if(!data.length)return pg.lastChild.outerHTML=`<div class="hint">Nothing here yet.</div>`;
- const g={};data.forEach(c=>(g[c.project||'No project']??=[]).push(c));
- pg.lastChild.outerHTML=Object.entries(g).map(([p,cs])=>`${arch?'':`<h6 class="mu" style="margin:14px 0 8px;font-weight:400">${esc(p)}</h6>`}<div class="list">${cs.map(c=>`<div><a href="#/chat/${c.id}" style="color:inherit;text-decoration:none;flex:1">${esc(c.title)}<span class="mu" style="font-size:12px"> · ${new Date(c.created_at).toLocaleDateString()}</span></a><button class="btn" data-a="${c.id}">${arch?'Restore':'Archive'}</button><button class="btn" data-d="${c.id}">Delete</button></div>`).join('')}</div>`).join('');
- pg.onclick=async e=>{const a=e.target.closest('[data-a]'),d=e.target.closest('[data-d]');if(a){await sb.from('conversations').update({archived:!arch}).eq('id',a.dataset.a);listView()}if(d&&confirm('Delete this conversation permanently?')){await sb.from('conversations').delete().eq('id',d.dataset.d);listView()}}}
-function smooth(p){let d=`M${p[0][0]},${p[0][1]}`;for(let i=1;i<p.length;i++){const mx=(p[i-1][0]+p[i][0])/2;d+=` C${mx},${p[i-1][1]} ${mx},${p[i][1]} ${p[i][0]},${p[i][1]}`}return d}
-function chart(vals,labels,color,id,smoothLine=true,W=700,H=230){
- const mx=Math.max(...vals,1),pts=vals.map((v,i)=>[20+i*(W-40)/Math.max(vals.length-1,1),H-24-(v/mx)*(H-60)]);
- const d=smoothLine?smooth(pts):'M'+pts.map(p=>p.join(',')).join(' L');
- return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block"><defs><linearGradient id="g${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".5"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
- ${pts.map(p=>`<line x1="${p[0]}" x2="${p[0]}" y1="10" y2="${H-24}" stroke="var(--grid)" stroke-dasharray="3 4"/>`).join('')}
- <path d="${d} L${pts.at(-1)[0]},${H-24} L${pts[0][0]},${H-24}Z" fill="url(#g${id})"/><path d="${d}" fill="none" stroke="${color}" stroke-width="2"/>
- ${pts.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="${i===pts.length-1?6:3.5}" fill="${i===pts.length-1?'var(--yellow)':color}"><title>${labels[i]}:${vals[i]}</title></circle>`).join('')}</svg>`}
-async function usage(days){const since=new Date(Date.now()-days*864e5).toISOString();const{data,error}=await sb.from('usage_events').select('*').gte('created_at',since).order('created_at',{ascending:false});return{data:data||[],error}}
-async function creditsView(){
- const m=$('#mn');m.innerHTML=`<div class="top">${menuBtn}<span></span></div><div class="pg"><div class="spin"></div></div>`;
- const[pr,u]=await Promise.all([refreshBal(),usage(14)]);if(u.error||!pr)return $('.pg').innerHTML=`<div class="hint">${esc(u.error?.message||'No profile found — run schema.sql')}</div>`;
- const days=[...Array(14)].map((_,i)=>{const d=new Date(Date.now()-(13-i)*864e5);return d.toISOString().slice(0,10)});
- const per=days.map(d=>u.data.filter(e=>e.created_at.slice(0,10)===d).reduce((a,e)=>a+e.credits,0));
- const used=pr.credit_total-pr.credit_balance,pct=Math.round(used/pr.credit_total*100);const models=new Set(u.data.map(e=>e.model)).size,kinds=new Set(u.data.map(e=>e.kind)).size;
- const k=n=>n>=1000?(n/1000).toFixed(1)+'K':n;
- $('.pg').innerHTML=`<div class="card" style="padding:28px;max-width:760px;margin:0 auto;background:rgba(14,12,20,.9)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px"><div style="display:flex;gap:16px;align-items:center"><div class="ico" style="width:52px;height:52px;background:rgba(244,114,182,.15);color:var(--pink);border:1px solid rgba(244,114,182,.4);border-radius:14px">${ic('spark')}</div><h1 style="font-weight:500">AI Credit System</h1></div><div class="mu">Balance<div style="color:#fff;font-size:22px;font-weight:500">${pr.credit_balance.toLocaleString()} <span class="mu" style="font-size:13px">credits</span></div></div></div>
- <div class="card" style="padding:8px;background:var(--s1)">${u.data.length?chart(per,days,'var(--pink)',1):'<div class="hint" style="margin:20px">No usage yet — send a message to see your credit graph.</div>'}</div>
- <div class="card" style="margin-top:12px;display:flex;align-items:center;gap:24px;padding:16px 20px"><div class="mu">Credits used<div style="color:#fff;font-size:24px;font-weight:500">${k(used)} <span class="mu" style="font-size:13px">/ ${k(pr.credit_total)}</span></div></div><div class="bar" style="flex:1"><i style="width:${pct}%"></i></div><b style="color:var(--pink);font-size:18px">${pct}%</b></div>
- <div class="stats">${[['db','Queries',u.data.length,'var(--indigo)'],['grid','Models',models,'var(--yellow)'],['cpu','Modes',kinds,'var(--pink)']].map(s=>`<div><span class="ico" style="background:rgba(255,255,255,.06);color:${s[3]}">${ic(s[0])}</span><span class="mu">${s[1]}<br><b style="color:#fff">${s[2]}</b></span></div>`).join('')}</div><p class="mu" style="margin-top:10px;font-size:12px">Last 14 days · 1 credit ≈ 1K tokens (estimated)</p></div>`}
-let rng='today';
-async function apiView(){
- const m=$('#mn');m.innerHTML=`<div class="top">${menuBtn}<span class="mu">API Dashboard</span><span class="ico" style="background:var(--s3);color:#fff;border-radius:50%">${esc((U.email||'U').slice(0,2).toUpperCase())}</span></div><div class="pg"><div class="spin"></div></div>`;
- const[pr,u]=await Promise.all([refreshBal(),usage(7)]);if(u.error||!pr)return $('.pg').innerHTML=`<div class="hint">${esc(u.error?.message||'No profile found — run schema.sql')}</div>`;
- const today=new Date().toISOString().slice(0,10),td=u.data.filter(e=>e.created_at.slice(0,10)===today),ok=td.filter(e=>e.status==='success').length,rate=td.length?Math.round(ok/td.length*100):null;
- const lab=rng==='today'?[...Array(24)].map((_,i)=>String(i).padStart(2,'0')+':00'):[...Array(7)].map((_,i)=>new Date(Date.now()-(6-i)*864e5).toISOString().slice(0,10));
- const vals=rng==='today'?lab.map((_,h)=>td.filter(e=>new Date(e.created_at).getHours()===h).length):lab.map(d=>u.data.filter(e=>e.created_at.slice(0,10)===d).length);
- const pm={};u.data.forEach(e=>pm[e.model]=(pm[e.model]||0)+1);const pop=Object.entries(pm).sort((a,b)=>b[1]-a[1]);
- $('.pg').innerHTML=`<div style="display:flex;justify-content:space-between;align-items:flex-start"><div><h1>Dashboard</h1><p class="sub">Welcome back! Here's an overview of your API usage.</p></div><button class="btn" id="rf">${ic('ref')}Refresh Balance</button></div>
- <div class="grid3"><div class="card"><div style="display:flex;justify-content:space-between" class="mu">Current Balance<span class="ico">${ic('dollar')}</span></div><div class="big">${pr.credit_balance.toLocaleString()}</div><span class="mu">credits</span></div>
- <div class="card"><div style="display:flex;justify-content:space-between" class="mu">Today's API Calls<span class="ico" style="background:#e0e7ff;color:#4338ca">${ic('bolt')}</span></div><div class="big">${td.length}</div><span class="mu">${td.reduce((a,e)=>a+e.credits,0)} credits spent</span></div>
- <div class="card"><div style="display:flex;justify-content:space-between" class="mu">Success Rate<span class="ico">${ic('trend')}</span></div><div class="big">${rate===null?'—':rate+'%'}</div><span class="mu">Today's requests</span>${rate!==null?`<div><span class="badge ${rate<90?'err':''}" style="margin-top:6px">${rate>=95?'Excellent':rate>=90?'Good':'Needs attention'}</span></div>`:''}</div></div>
- <div class="grid2"><div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><b>API Usage Trend</b><span style="display:flex;gap:4px;background:var(--s2);padding:4px;border-radius:10px"><button class="btn" data-r="today" style="${rng==='today'?'background:var(--mint);color:#052e26;border-color:var(--mint)':'border-color:transparent'}">Today</button><button class="btn" data-r="7d" style="${rng==='7d'?'background:var(--mint);color:#052e26;border-color:var(--mint)':'border-color:transparent'}">7 Days</button></span></div><div class="big" style="font-size:22px">${vals.reduce((a,b)=>a+b,0)} <span class="mu" style="font-size:13px;font-weight:400">total calls ${rng==='today'?'today':'this week'}</span></div><div style="background:var(--s1);border-radius:10px;padding:6px">${chart(vals,lab,'var(--mint)',2,false,520,200)}</div></div>
- <div class="card"><b>Popular Models</b><div class="big" style="font-size:22px">${pop.length} <span class="mu" style="font-size:13px;font-weight:400">models used this week</span></div>${pop.length?pop.map(([n,c])=>`<div style="display:flex;align-items:center;gap:10px;margin:12px 0"><span style="color:var(--mint)">${ic('bolt')}</span><span style="flex:1">${esc(n)}</span><span class="pill" style="background:#fff;color:#000;padding:1px 10px">${Math.round(c/u.data.length*100)}%</span><span class="mu" style="width:34px;text-align:right">${c}</span></div>`).join(''):'<div class="hint" style="margin-top:14px">No calls yet.</div>'}</div></div>
- <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><b>Recent Activity</b><a class="btn" href="#/library" style="text-decoration:none;color:inherit">View All ${ic('exp')}</a></div><div class="list">${u.data.slice(0,6).map(e=>`<div><span style="display:flex;gap:10px;align-items:center">${ic('trend')}<b style="font-weight:500">${esc(e.model||'model')}</b><span class="badge ${e.status==='success'?'':'err'}" style="font-size:10px">${e.status}</span></span><span class="mu">${new Date(e.created_at).toLocaleString()} ·${e.duration_ms?(e.duration_ms/1000).toFixed(1)+'s':'—'}</span></div>`).join('')||'<div class="hint">No activity yet.</div>'}</div></div>`;
- $('#rf').onclick=()=>{apiView();toast('Balance refreshed')};document.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{rng=b.dataset.r;apiView()})}
-async function keysView(){
- const m=$('#mn');m.innerHTML=`<div class="top">${menuBtn}<span class="mu">API Keys</span><span></span></div><div class="pg"><h1>API Keys</h1><p class="sub">Manage your API keys</p><div class="card" style="margin-bottom:16px"><label>Key name</label><input id="kn" class="f" placeholder="e.g. Production"><button class="btn p" id="kc">Create key</button><div id="kn2"></div></div><div id="kl"><div class="spin"></div></div></div>`;
- const load=async()=>{const{data,error}=await sb.from('api_keys').select('*').order('created_at',{ascending:false});$('#kl').innerHTML=error?`<div class="hint">${esc(error.message)}</div>`:data.length?`<div class="list">${data.map(k=>`<div><span><b style="font-weight:500">${esc(k.name)}</b> <span class="mu">${esc(k.key_prefix)}… · ${new Date(k.created_at).toLocaleDateString()}</span> ${k.revoked?'<span class="badge err">revoked</span>':''}</span>${k.revoked?'':`<button class="btn" data-k="${k.id}">Revoke</button>`}</div>`).join('')}</div>`:'<div class="hint">No keys yet.</div>';
-  $('#kl').onclick=async e=>{const b=e.target.closest('[data-k]');if(b){await sb.from('api_keys').update({revoked:true}).eq('id',b.dataset.k);load()}}};load();
- $('#kc').onclick=async()=>{const n=$('#kn').value.trim();if(!n)return toast('Enter a name');const raw='vk_'+[...crypto.getRandomValues(new Uint8Array(24))].map(b=>b.toString(16).padStart(2,'0')).join('');
-  const h=[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(raw)))].map(b=>b.toString(16).padStart(2,'0')).join('');
-  const{error}=await sb.from('api_keys').insert({name:n,key_prefix:raw.slice(0,9),key_hash:h});if(error)return toast(error.message);
-  $('#kn2').innerHTML=`<div class="hint" style="margin-top:12px">Copy now — it won't be shown again:<br><code style="color:var(--mint);word-break:break-all">${raw}</code></div>`;$('#kn').value='';load()}}
-async function billingView(){
- const m=$('#mn');m.innerHTML=`<div class="top">${menuBtn}<span class="mu">Billing</span><span></span></div><div class="pg"><div class="spin"></div></div>`;
- const[pr,u]=await Promise.all([refreshBal(),usage(30)]);if(!pr)return $('.pg').innerHTML=`<div class="hint">No profile found — run schema.sql</div>`;
- $('.pg').innerHTML=`<h1>Billing</h1><p class="sub">Credits and payments</p><div class="grid3"><div class="card"><span class="mu">Balance</span><div class="big">${pr.credit_balance.toLocaleString()}</div></div><div class="card"><span class="mu">Plan allowance</span><div class="big">${pr.credit_total.toLocaleString()}</div></div><div class="card"><span class="mu">Spent (30 days)</span><div class="big">${u.data.reduce((a,e)=>a+e.credits,0)}</div></div></div>
- <div class="hint" style="margin-bottom:16px">No payment provider is connected yet, so purchasing credits is disabled. Connect Stripe (Edge Function + webhook that updates <code>profiles.credit_total</code>) to enable it.</div><button class="btn p" disabled>Buy credits</button>`}
-function settingsView(){
- const s=S(),m=$('#mn');m.innerHTML=`<div class="top">${menuBtn}<span class="mu">Settings</span><span></span></div><div class="pg" style="max-width:640px"><h1>Settings</h1><p class="sub">Connect your own AI model (OpenAI-compatible /v1/chat/completions)</p><div class="card"><label>Endpoint URL</label><input id="se" class="f" value="${esc(s.endpoint||'')}" placeholder="https://your-host/v1/chat/completions"><label>Model API key (optional)</label><input id="sk" class="f" type="password" value="${esc(s.apikey||'')}"><label>Model names (comma separated)</label><input id="sm" class="f" value="${esc(s.models||'')}" placeholder="my-model-v1, my-model-fast"><button class="btn p" id="ss">Save</button></div><p class="mu" style="margin-top:12px;font-size:12px">Stored in this browser only. For production, put the model key behind a Supabase Edge Function so it never reaches the client; your model server must allow CORS.</p></div>`;
- $('#ss').onclick=()=>{localStorage.setItem('venom_s',JSON.stringify({endpoint:$('#se').value.trim(),apikey:$('#sk').value.trim(),models:$('#sm').value.trim()}));toast('Saved')}}
-boot();
-</script></body></html><!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>VENOM V1</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<style>
-:root{--bg:#000;--s1:#0c0a0f;--s2:#15111a;--s3:#1d1724;--plum:#2a1233;--indigo:#4f46e5;--violet:#a855f7;--pink:#f472b6;--mint:#8ef5d4;--teal:#2dd4bf;--yellow:#facc15;
---tx:#f4f1f8;--mu:#8b8496;--bd:rgba(255,255,255,.09);--bd2:rgba(168,85,247,.45);--r:14px;--rb:10px;--glow:0 0 40px rgba(168,85,247,.35);--ok:#4ade80;--err:#f87171;--grid:rgba(255,255,255,.06);--fs:14px;--fs-s:12px;--fs-h:26px;--g1:8px;--g2:16px;--g3:24px}
-*{box-sizing:border-box;margin:0}html,body{height:100%}
-body{background:var(--bg);color:var(--tx);font:var(--fs)/1.5 Inter,system-ui,sans-serif;padding:14px}
-button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer;background:none;border:0}
-:focus-visible{outline:2px solid var(--violet);outline-offset:2px}button:disabled{opacity:.45;cursor:not-allowed}
-.app{display:grid;grid-template-columns:240px 1fr;gap:14px;height:calc(100vh - 28px);border:1px solid var(--bd);border-radius:22px;padding:12px;background:#050306}
-aside{display:flex;flex-direction:column;gap:4px;overflow:auto;padding:4px}
-.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:17px;padding:4px 6px 12px}
-.logo{width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#e9d5ff,#7e22ce 60%,#1e1b4b)}
-.nav,.newchat{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;color:#cfc9d8;font-size:13px;text-align:left;width:100%}
-.nav:hover{background:var(--s2)}.nav.on{background:var(--s3);color:#fff}.newchat{background:var(--s3);color:#fff;margin-bottom:6px}
-aside h6{font-size:12px;font-weight:400;color:var(--mu);margin:14px 10px 4px}
-.up{margin-top:auto;border:1px solid var(--bd);border-radius:12px;background:var(--s1);padding:14px;text-align:center;font-size:11px;color:var(--mu)}
-.up b{display:block;color:#fff;font-size:12px;margin:6px 0 4px}.up button{margin-top:10px;width:100%;background:var(--s3);color:#fff;border-radius:8px;padding:7px}
-svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
-main{position:relative;border-radius:18px;overflow:auto;background:radial-gradient(70% 55% at 50% 38%,#3a1646 0%,#1a0b20 45%,#0a0610 100%);border:1px solid var(--bd);display:flex;flex-direction:column}
-main.mint{background:#0e0e10}main.cr{background:radial-gradient(60% 50% at 80% 0,rgba(79,70,229,.25),transparent),radial-gradient(50% 40% at 0 100%,rgba(168,85,247,.25),transparent),#05040a}
-.top{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;gap:10px}
-.pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--bd);background:var(--s1);border-radius:99px;padding:6px 14px;font-size:12px}.pill:hover{border-color:var(--bd2)}
-.pill select{background:none;border:0;outline:0;font-size:12px}.pill select option{background:#111}
-.hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:20px;text-align:center}
-.orb{width:54px;height:54px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f5d0fe,#9333ea 45%,#312e81 85%);box-shadow:var(--glow)}
-.hero h1{font-size:23px;font-weight:400}
-.dock{padding:0 clamp(16px,12%,160px) 16px;display:flex;flex-direction:column;gap:12px}
-.chips{display:flex;gap:8px;flex-wrap:wrap}
-.comp{border:1px solid var(--bd2);background:rgba(24,16,30,.85);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:14px}
-.comp textarea{background:none;border:0;outline:0;resize:none;min-height:44px;max-height:180px;width:100%}
-.comp .row{display:flex;align-items:center;gap:14px;color:var(--mu);font-size:12px}.row .sp{flex:1}
-.row button{display:flex;gap:6px;align-items:center;color:var(--mu)}.row button:hover{color:#fff}
-.send{width:30px;height:30px;border-radius:50%;background:var(--violet);color:#fff!important;justify-content:center}.mic{width:30px;height:30px;border-radius:50%;background:var(--s3);justify-content:center}
-.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.fc{text-align:left;border:1px solid var(--bd);background:rgba(10,7,13,.9);border-radius:12px;padding:14px;min-height:92px;color:var(--mu);font-size:12px}.fc:hover{border-color:var(--bd2)}
-.fc div{display:flex;justify-content:space-between;margin-bottom:10px}.fc b{display:block;color:#fff;font-weight:500;margin-bottom:4px}
-.tag{font-size:10px;background:var(--s3);border-radius:99px;padding:2px 9px;color:#ccc}
-.msgs{flex:1;overflow:auto;padding:10px clamp(16px,12%,160px);display:flex;flex-direction:column;gap:18px}
-.m{max-width:100%;white-space:pre-wrap;word-break:break-word}.m.u{align-self:flex-end;background:var(--s3);border:1px solid var(--bd);border-radius:14px;padding:10px 14px;max-width:80%}
-.m.a::before{content:"";display:block;width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f5d0fe,#9333ea 50%,#312e81);margin-bottom:6px}
-.m pre{background:#0a0710;border:1px solid var(--bd);border-radius:8px;padding:10px;overflow:auto;margin:8px 0}
-.pg{padding:8px 24px 28px;max-width:1100px;width:100%;margin:0 auto}
-.pg h1{font-size:var(--fs-h);font-weight:600}.sub{color:var(--mu);margin-bottom:var(--g3)}
-.card{border:1px solid var(--bd);background:rgba(18,14,22,.85);border-radius:var(--r);padding:20px}
-.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px}.grid2{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;margin-bottom:16px}
-.mu{color:var(--mu)}.big{font-size:26px;font-weight:600;margin:10px 0 4px}
-.ico{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:rgba(142,245,212,.15);color:var(--mint)}
-.cr .card,.cr.card{background:rgba(14,12,20,.9)}
-.mint .card{background:#131316}.mint .nav.on{background:var(--mint);color:#052e26}
-.badge{display:inline-block;background:var(--mint);color:#052e26;border-radius:6px;padding:1px 9px;font-size:11px;font-weight:600}.badge.err{background:var(--err);color:#fff}
-.btn{border:1px solid var(--bd);border-radius:8px;padding:7px 14px;font-size:12px;display:inline-flex;gap:8px;align-items:center}.btn:hover{border-color:#fff}.btn.p{background:var(--violet);border-color:var(--violet);color:#fff}
-.bar{height:12px;border-radius:99px;background:var(--s2);overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,#3b5bff,var(--pink));border-radius:99px}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--bd);border-radius:12px;margin-top:12px}.stats div{padding:14px;display:flex;gap:12px;align-items:center;border-right:1px solid var(--bd)}.stats div:last-child{border:0}
-.list>div{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--bd);border-radius:10px;padding:10px 14px;margin-bottom:8px}
-.hint{border:1px dashed var(--bd2);border-radius:12px;padding:16px;color:var(--mu);font-size:13px}
-input.f{background:var(--s1);border:1px solid var(--bd);border-radius:8px;padding:9px 12px;width:100%;margin:4px 0 12px;outline:0}input.f:focus{border-color:var(--violet)}
-label{font-size:12px;color:var(--mu)}
-#toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:#1d1724;border:1px solid var(--bd2);padding:8px 16px;border-radius:10px;z-index:9;display:none}
-.spin{width:18px;height:18px;border:2px solid var(--bd);border-top-color:var(--violet);border-radius:50%;animation:r 1s linear infinite;margin:30px auto}@keyframes r{to{transform:rotate(360deg)}}
-#auth{max-width:340px;margin:12vh auto;text-align:center}.menu{display:none}
-audio{margin-top:10px;width:100%;height:32px;}
-@media(max-width:860px){body{padding:0}.app{grid-template-columns:1fr;height:100vh;border-radius:0;border:0;padding:0}aside{position:fixed;inset:0 30% 0 0;z-index:5;background:#050306;transform:translateX(-100%);transition:.2s;padding:12px}aside.open{transform:none}.menu{display:inline-flex}.grid3,.grid2,.cards{grid-template-columns:1fr}.dock{padding:0 12px 12px}.msgs{padding:10px 14px}.stats{grid-template-columns:1fr}}
-</style></head><body>
-<div id="toast"></div><div id="root"></div>
-<script>
-// ====== CONFIG: Supabase Keys Filled ======
-const CFG={url:'https://smdonarsvrjtblemaktr.supabase.co',anon:'sb_publishable_n1UAJ3E40NClzxZXy2NRzg_HSfrk1di'};
-// ==========================================
-const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const P={plus:'M12 5v14M5 12h14',chat:'M21 12a8 8 0 0 1-11.5 7.2L4 20l1-4.5A8 8 0 1 1 21 12z',arch:'M3 4h18v4H3zM5 8v12h14V8M10 12h4',lib:'M4 4v16M9 4v16M14 6l5 14',fold:'M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',img:'M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M9 9h.01',sl:'M5 3h10l4 4v14H5zM14 3v5h5',code:'M8 8l-5 4 5 4M16 8l5 4-5 4M14 5l-4 14',key:'M14 10a4 4 0 1 0-3.5 4L13 16.5V19h3v-2h2l2-2zM8 10h.01',card:'M3 6h18v12H3zM3 10h18',gear:'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM19 12l2-1-2-4-2 .7-1.5-1L15 4h-4l-.5 2.7-1.5 1L7 7l-2 4 2 1v1l-2 1 2 4 2-.7 1.5 1L11 20h4l.5-2.7 1.5-1 2 .7 2-4-2-1z',chart:'M4 20V10M10 20V4M16 20v-7M22 20H2',home:'M3 11l9-8 9 8M5 10v10h14V10',send:'M12 19V5M5 12l7-7 7 7',mic:'M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3',clip:'M20 11l-8.5 8.5a5 5 0 0 1-7-7L13 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L14 7',ref:'M20 5v5h-5M4 19v-5h5M5 10a7 7 0 0 1 12-3l3 3M19 14a7 7 0 0 1-12 3l-3-3',spark:'M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z',exp:'M12 15V3M7 8l5-5 5 5M4 17v4h16v-4',bolt:'M13 2L4 14h7l-1 8 9-12h-7z',dollar:'M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6',menu:'M3 6h18M3 12h18M3 18h18',trend:'M3 17l6-6 4 4 8-8M15 7h6v6',db:'M4 6c0-2 16-2 16 0s-16 2-16 0zM4 6v12c0 2 16 2 16 0V6M4 12c0 2 16 2 16 0',cpu:'M7 7h10v10H7zM9 3v4M15 3v4M9 17v4M15 17v4M3 9h4M3 15h4M17 9h4M17 15h4',grid:'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',out:'M9 4H5v16h4M16 8l4 4-4 4M20 12H9',bulb:'M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z'};
-const ic=n=>`<svg class="i" viewBox="0 0 24 24"><path d="${P[n]}"/></svg>`;
-const toast=m=>{const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display='none',3200)};
-const sb=CFG.url?supabase.createClient(CFG.url,CFG.anon):null;
-const S=()=>JSON.parse(localStorage.getItem('venom_s')||'{}');
-const MODES={chat:{sys:''},image:{sys:'You are an image-prompt specialist. Turn the user idea into a detailed, production-ready image generation prompt plus 3 style variations.',ph:'Describe the image you want…'},slides:{sys:'You are a presentation designer. Output a slide-by-slide outline: title, 3-5 bullets, speaker notes.',ph:'Topic for your presentation…'},dev:{sys:'You are a senior software engineer. Give clean, production-ready code with brief explanations.',ph:'Describe what to build or debug…'}};
-let U=null,conv=null,msgs=[],busy=false,mode='chat',project=null;
-
-function boot(){
- if(!sb){$('#root').innerHTML=`<div id="auth" class="card"><div class="orb" style="margin:0 auto 16px"></div><h2>Setup needed</h2><p class="mu" style="margin:10px 0">Open <b>index.html</b> and check your CFG keys.</p></div>`;return}
- sb.auth.getSession().then(({data})=>{U=data.session?.user||null;U?shell():login()});
-}
-function login(){
-  $('#root').innerHTML=`<div id="auth" class="card">
+<div id="toast"></div>
+<div id="auth-modal">
+  <div class="card">
     <div class="orb" style="margin:0 auto 12px"></div>
-    <h2>VENOM V1</h2>
-    <p class="mu" style="margin-bottom:14px">Sign in to continue</p>
-    
+    <h2>Sign in required</h2>
+    <p class="mu" style="margin-bottom:14px">Please sign in to send messages and use Venom AI.</p>
     <input id="em" class="f" type="email" placeholder="Email" autocomplete="email">
     <input id="pw" class="f" type="password" placeholder="Password" autocomplete="current-password">
-    
     <button class="btn p" id="si" style="width:100%;justify-content:center">Sign in</button>
     <button class="btn" id="su" style="width:100%;justify-content:center;margin-top:8px">Create account</button>
-    
-    <div style="margin: 14px 0; color: var(--mu); font-size: 12px;">OR</div>
-    
-    <!-- Google Login Button -->
-    <button class="btn" id="sgg" style="width:100%;justify-content:center;background:#fff;color:#000;border:0;">
-      <svg style="width:16px;height:16px;margin-right:8px;" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.28-2.1 3.66-5.18 3.66-8.87z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.13 0-5.78-2.11-6.73-4.96H1.19v3.15C3.18 21.3 7.22 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.24c-.25-.72-.38-1.49-.38-2.24s.13-1.52.38-2.24V6.6H1.19C.43 8.13 0 9.87 0 12s.43 3.87 1.19 5.4l4.08-3.16z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.22 0 3.18 2.7 1.19 6.6l4.08 3.15c.95-2.85 3.6-4.96 6.73-4.96z"/></svg>
-      Sign in with Google
-    </button>
-  </div>`;
+    <button class="btn" id="auth-close" style="width:100%;justify-content:center;margin-top:8px;background:transparent;border:0;color:var(--mu)">Cancel</button>
+  </div>
+</div>
+<div id="root"></div>
+<script>
+// ====== CONFIG: Supabase Keys Filled ======
+const CFG={url:'https://smdonarsvrjtblemaktr.supabase.co',anon:'sb_publishable_n1UAJ3E40NClzxZXy2NRzg_HSfrk1di'};
+// ==========================================
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const P={plus:'M12 5v14M5 12h14',chat:'M21 12a8 8 0 0 1-11.5 7.2L4 20l1-4.5A8 8 0 1 1 21 12z',arch:'M3 4h18v4H3zM5 8v12h14V8M10 12h4',lib:'M4 4v16M9 4v16M14 6l5 14',fold:'M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',img:'M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M9 9h.01',sl:'M5 3h10l4 4v14H5zM14 3v5h5',code:'M8 8l-5 4 5 4M16 8l5 4-5 4M14 5l-4 14',key:'M14 10a4 4 0 1 0-3.5 4L13 16.5V19h3v-2h2l2-2zM8 10h.01',card:'M3 6h18v12H3zM3 10h18',gear:'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM19 12l2-1-2-4-2 .7-1.5-1L15 4h-4l-.5 2.7-1.5 1L7 7l-2 4 2 1v1l-2 1 2 4 2-.7 1.5 1L11 20h4l.5-2.7 1.5-1 2 .7 2-4-2-1z',chart:'M4 20V10M10 20V4M16 20v-7M22 20H2',home:'M3 11l9-8 9 8M5 10v10h14V10',send:'M12 19V5M5 12l7-7 7 7',mic:'M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3',clip:'M20 11l-8.5 8.5a5 5 0 0 1-7-7L13 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L14 7',ref:'M20 5v5h-5M4 19v-5h5M5 10a7 7 0 0 1 12-3l3 3M19 14a7 7 0 0 1-12 3l-3-3',spark:'M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z',exp:'M12 15V3M7 8l5-5 5 5M4 17v4h16v-4',bolt:'M13 2L4 14h7l-1 8 9-12h-7z',dollar:'M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6',menu:'M3 6h18M3 12h18M3 18h18',trend:'M3 17l6-6 4 4 8-8M15 7h6v6',db:'M4 6c0-2 16-2 16 0s-16 2-16 0zM4 6v12c0 2 16 2 16 0V6M4 12c0 2 16 2 16 0',cpu:'M7 7h10v10H7zM9 3v4M15 3v4M9 17v4M15 17v4M3 9h4M3 15h4M17 9h4M17 15h4',grid:'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',out:'M9 4H5v16h4M16 8l4 4-4 4M20 12H9',bulb:'M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.5 1 2.5h6c0-1 .3-1.8 1-2.5A6 6 0 0 0 12 3z'};
+const ic=n=>`<svg class="i" viewBox="0 0 24 24"><path d="${P[n]}"/></svg>`;
+const toast=m=>{const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display='none',3200)};
+const sb=CFG.url?supabase.createClient(CFG.url,CFG.anon):null;
+const S=()=>JSON.parse(localStorage.getItem('venom_s')||'{}');
+const MODES={chat:{sys:''},image:{sys:'You are an image-prompt specialist. Turn the user idea into a detailed, production-ready image generation prompt plus 3 style variations.',ph:'Describe the image you want…'},slides:{sys:'You are a presentation designer. Output a slide-by-slide outline: title, 3-5 bullets, speaker notes.',ph:'Topic for your presentation…'},dev:{sys:'You are a senior software engineer. Give clean, production-ready code with brief explanations.',ph:'Describe what to build or debug…'}};
+let U=null,conv=null,msgs=[],busy=false,mode='chat',project=null;
 
-  const go = async(up) => {
-    const e = $('#em').value, p = $('#pw').value;
-    const r = up ? await sb.auth.signUp({email:e, password:p}) : await sb.auth.signInWithPassword({email:e, password:p});
-    if(r.error) return toast(r.error.message);
-    if(up && !r.data.session) return toast('Check your email to confirm, then sign in.');
-    U = r.data.user; 
-    shell();
-  };
-
-  $('#si').onclick = () => go(0);
-  $('#su').onclick = () => go(1);
-
-  // Google OAuth Login Trigger
-  $('#sgg').onclick = async () => {
-    const { error } = await sb.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin
-      }
-    });
-    if(error) toast(error.message);
-  };
+function boot(){
+ sb.auth.getSession().then(({data})=>{U=data.session?.user||null;shell();});
 }
 const NAV=[['chat','Chat','chat','#/chat'],['archived','Archived','arch','#/archived'],['library','Library','lib','#/library']];
 const WS=[['image','Image Generator','img','#/mode/image'],['slides','AI Presentation','sl','#/mode/slides'],['dev','Developer Assistant','code','#/mode/dev']];
@@ -382,14 +104,15 @@ function shell(){
  $('#root').innerHTML=`<div class="app"><aside id="sd"><div class="brand"><span class="logo"></span>VENOM V1</div>
  <button class="newchat" id="nc">${ic('plus')}New Chat</button><h6>Features</h6>${NAV.map(item).join('')}
  <h6>Workspaces</h6><button class="nav" id="np">${ic('fold')}New Project</button>${WS.map(item).join('')}
- <h6>Account</h6>${ACC.map(item).join('')}<button class="nav" id="so">${ic('out')}Sign out</button>
- <div class="up">${ic('spark')}<b>Credits</b><span id="upb">…</span><button id="upg">Billing</button></div></aside><main id="mn"></main></div>`;
+ <h6>Account</h6>${ACC.map(item).join('')}<button class="nav" id="so">${ic('out')}${U?'Sign out':'Sign in'}</button>
+ <div class="up">${ic('spark')}<b>Credits</b><span id="upb">🔓 Free Mode</span><button id="upg">Billing</button></div></aside><main id="mn"></main></div>`;
  $('#nc').onclick=()=>{conv=null;msgs=[];project=null;mode='chat';location.hash='#/chat';route()};
  $('#np').onclick=()=>{const n=prompt('Project name');if(n){project=n.trim();conv=null;msgs=[];mode='chat';location.hash='#/chat';toast('Project "'+project+'" — new chats are saved into it');route()}};
- $('#so').onclick=async()=>{await sb.auth.signOut();U=null;login()};$('#upg').onclick=()=>location.hash='#/billing';
- route();refreshBal()}
-async function refreshBal(){const{data}=await sb.from('profiles').select('*').single();if(data&&$('#upb'))$('#upb').textContent=data.credit_balance.toLocaleString()+' credits left';return data}
-addEventListener('hashchange',()=>U&&route());
+ $('#so').onclick=async()=>{if(U){await sb.auth.signOut();U=null;shell();toast('Signed out');}else{openAuthModal();}};
+ $('#upg').onclick=()=>location.hash='#/billing';
+ route();if(U)refreshBal()}
+async function refreshBal(){if(!U)return;const{data}=await sb.from('profiles').select('*').single();if(data&&$('#upb'))$('#upb').textContent=data.credit_balance.toLocaleString()+' credits left';return data}
+addEventListener('hashchange',()=>route());
 function route(){const h=location.hash.split('/');const v=h[1]||'chat';const m=$('#mn');if(!m)return;
  document.querySelectorAll('.nav[data-k]').forEach(a=>a.classList.toggle('on',a.dataset.k===(v==='mode'?h[2]:v)));
  $('#sd')?.classList.remove('open');m.className=['api','keys','billing'].includes(v)?'mint':v==='credits'?'cr':'';
@@ -416,7 +139,7 @@ function chatView(){
  $('#at').onclick=()=>{const f=document.createElement('input');f.type='file';f.accept='.txt,.md,.json,.csv,.js,.py,.html';f.onchange=async()=>{const t=await f.files[0].text();inp.value+=`\n\n[${f.files[0].name}]\n`+t.slice(0,20000)};f.click()};
  $('#mc').onclick=()=>{const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R)return toast('Voice input not supported in this browser');const r=new R();r.onresult=e=>inp.value+=e.results[0][0].transcript;r.start();toast('Listening…')};
  $('#ex').onclick=()=>{if(!msgs.length)return toast('Nothing to export yet');const b=new Blob([msgs.map(x=>`## ${x.role}\n${x.content}`).join('\n\n')],{type:'text/markdown'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='chat.md';a.click()};
- if($('#ar'))$('#ar').onclick=async()=>{await sb.from('conversations').update({archived:true}).eq('id',conv);conv=null;msgs=[];toast('Archived');location.hash='#/archived'}}
+ if($('#ar'))$('#ar').onclick=async()=>{if(!U){openAuthModal();return;}await sb.from('conversations').update({archived:true}).eq('id',conv);conv=null;msgs=[];toast('Archived');location.hash='#/archived'}}
 
 function renderMsgs(){
  const el=$('#ms');if(!el)return;
@@ -431,8 +154,7 @@ function fmt(t){return esc(t).replace(/```(\w*)\n?([\s\S]*?)```/g,(_,l,c)=>`<pre
 
 async function generateVoice(text, index) {
  try {
-  // Edge-TTS public cloud endpoint or local backend wrapper if hosted together
-  const r = await fetch('https://edge-tts-api.hf.space/text-to-speech', { // or your python backend
+  const r = await fetch('https://edge-tts-api.hf.space/text-to-speech', {
    method: 'POST',
    headers: {'Content-Type': 'application/json'},
    body: JSON.stringify({text: text, voice: 'hi-IN-SwaraNeural'})
@@ -443,13 +165,38 @@ async function generateVoice(text, index) {
    msgs[index].audioUrl = url;
    renderMsgs();
   }
- } catch(e) {
-  // If voice server isn't hit, we gracefully skip audio without breaking chat
- }
+ } catch(e) {}
+}
+
+function openAuthModal(){
+ $('#auth-modal').style.display='grid';
+ $('#si').onclick=()=>handleAuth(0);
+ $('#su').onclick=()=>handleAuth(1);
+ $('#auth-close').onclick=()=>$('#auth-modal').style.display='none';
+}
+
+async function handleAuth(up){
+ const e=$('#em').value, p=$('#pw').value;
+ if(!e || !p) return toast('Enter email and password');
+ const r = up ? await sb.auth.signUp({email:e, password:p}) : await sb.auth.signInWithPassword({email:e, password:p});
+ if(r.error) return toast(r.error.message);
+ if(up && !r.data.session) return toast('Check your email to confirm, then sign in.');
+ U = r.data.user;
+ $('#auth-modal').style.display='none';
+ shell();
+ toast('Successfully signed in!');
 }
 
 async function send(){
- const inp=$('#in'),text=inp.value.trim();if(!text||busy)return;const s=S();
+ const inp=$('#in'),text=inp.value.trim();if(!text||busy)return;
+ 
+ // Check if user is logged in before allowing AI query
+ if(!U){
+  openAuthModal();
+  return;
+ }
+
+ const s=S();
  if(!s.endpoint)return toast('Set your model endpoint in Settings first');
  busy=true;const model=$('#md')?.value;
  if(!conv){const{data,error}=await sb.from('conversations').insert({title:text.slice(0,48),project}).select().single();if(error){busy=false;return toast(error.message)}conv=data.id}
@@ -466,7 +213,6 @@ async function send(){
    msgs[aiMsgIdx].content=out;renderMsgs()}
  }catch(e){ok=false;out=out||'⚠ '+e.message;msgs[aiMsgIdx].content=out;renderMsgs();toast(e.message)}
  
- // Trigger Voice Generation after text is complete
  if(ok && out) { generateVoice(out, aiMsgIdx); }
 
  const credits=Math.max(1,Math.ceil((text.length+out.length)/4/1000));
@@ -476,6 +222,7 @@ async function send(){
 
 async function listView(v){
  const arch=location.hash.includes('archived');const m=$('#mn');m.innerHTML=`<div class="top">${menuBtn}<span></span></div><div class="pg"><h1>${arch?'Archived':'Library'}</h1><p class="sub">${arch?'Archived conversations':'All your conversations, grouped by project'}</p><div class="spin"></div></div>`;
+ if(!U){pg.lastChild.outerHTML=`<div class="hint">Please sign in to view your library and conversations.</div>`;return;}
  const{data,error}=await sb.from('conversations').select('*').eq('archived',arch).order('created_at',{ascending:false});
  const pg=$('.pg');if(error)return pg.lastChild.outerHTML=`<div class="hint">${esc(error.message)}</div>`;
  if(!data.length)return pg.lastChild.outerHTML=`<div class="hint">Nothing here yet.</div>`;
@@ -493,7 +240,8 @@ function chart(vals,labels,color,id,smoothLine=true,W=700,H=230){
 async function usage(days){const since=new Date(Date.now()-days*864e5).toISOString();const{data,error}=await sb.from('usage_events').select('*').gte('created_at',since).order('created_at',{ascending:false});return{data:data||[],error}}
 async function creditsView(){
  const m=$('#mn');m.innerHTML=`<div class="top">${menuBtn}<span></span></div><div class="pg"><div class="spin"></div></div>`;
- const[pr,u]=await Promise.all([refreshBal(),usage(14)]);if(u.error||!pr)return $('.pg').innerHTML=`<div class="hint">${esc(u.error?.message||'No profile found — run schema.sql')}</div>`;
+ if(!U){$('.pg').innerHTML=`<div class="hint">Please sign in to view your credits and usage statistics.</div>`;return;}
+ const[pr,u]=await Promise.all([refreshBal(),usage(14)]);if(u.error||!pr)return $('.pg').innerHTML=`<div class="hint">${esc(u.error?.message||'No profile found')}</div>`;
  const days=[...Array(14)].map((_,i)=>{const d=new Date(Date.now()-(13-i)*864e5);return d.toISOString().slice(0,10)});
  const per=days.map(d=>u.data.filter(e=>e.created_at.slice(0,10)===d).reduce((a,e)=>a+e.credits,0));
  const used=pr.credit_total-pr.credit_balance,pct=Math.round(used/pr.credit_total*100);const models=new Set(u.data.map(e=>e.model)).size,kinds=new Set(u.data.map(e=>e.kind)).size;
@@ -504,8 +252,9 @@ async function creditsView(){
  <div class="stats">${[['db','Queries',u.data.length,'var(--indigo)'],['grid','Models',models,'var(--yellow)'],['cpu','Modes',kinds,'var(--pink)']].map(s=>`<div><span class="ico" style="background:rgba(255,255,255,.06);color:${s[3]}">${ic(s[0])}</span><span class="mu">${s[1]}<br><b style="color:#fff">${s[2]}</b></span></div>`).join('')}</div><p class="mu" style="margin-top:10px;font-size:12px">Last 14 days · 1 credit ≈ 1K tokens (estimated)</p></div>`}
 let rng='today';
 async function apiView(){
- const m=$('#mn');m.innerHTML=`<div class="top">${menuBtn}<span class="mu">API Dashboard</span><span class="ico" style="background:var(--s3);color:#fff;border-radius:50%">${esc((U.email||'U').slice(0,2).toUpperCase())}</span></div><div class="pg"><div class="spin"></div></div>`;
- const[pr,u]=await Promise.all([refreshBal(),usage(7)]);if(u.error||!pr)return $('.pg').innerHTML=`<div class="hint">${esc(u.error?.message||'No profile found — run schema.sql')}</div>`;
+ const m=$('#mn');m.innerHTML=`<div class="top">${menuBtn}<span class="mu">API Dashboard</span><span class="ico" style="background:var(--s3);color:#fff;border-radius:50%">${esc((U?.email||'U').slice(0,2).toUpperCase())}</span></div><div class="pg"><div class="spin"></div></div>`;
+ if(!U){$('.pg').innerHTML=`<div class="hint">Please sign in to view the API dashboard.</div>`;return;}
+ const[pr,u]=await Promise.all([refreshBal(),usage(7)]);if(u.error||!pr)return $('.pg').innerHTML=`<div class="hint">${esc(u.error?.message||'No profile found')}</div>`;
  const today=new Date().toISOString().slice(0,10),td=u.data.filter(e=>e.created_at.slice(0,10)===today),ok=td.filter(e=>e.status==='success').length,rate=td.length?Math.round(ok/td.length*100):null;
  const lab=rng==='today'?[...Array(24)].map((_,i)=>String(i).padStart(2,'0')+':00'):[...Array(7)].map((_,i)=>new Date(Date.now()-(6-i)*864e5).toISOString().slice(0,10));
  const vals=rng==='today'?lab.map((_,h)=>td.filter(e=>new Date(e.created_at).getHours()===h).length):lab.map(d=>u.data.filter(e=>e.created_at.slice(0,10)===d).length);
@@ -519,7 +268,8 @@ async function apiView(){
  <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><b>Recent Activity</b><a class="btn" href="#/library" style="text-decoration:none;color:inherit">View All ${ic('exp')}</a></div><div class="list">${u.data.slice(0,6).map(e=>`<div><span style="display:flex;gap:10px;align-items:center">${ic('trend')}<b style="font-weight:500">${esc(e.model||'model')}</b><span class="badge ${e.status==='success'?'':'err'}" style="font-size:10px">${e.status}</span></span><span class="mu">${new Date(e.created_at).toLocaleString()} ·${e.duration_ms?(e.duration_ms/1000).toFixed(1)+'s':'—'}</span></div>`).join('')||'<div class="hint">No activity yet.</div>'}</div></div>`;
  $('#rf').onclick=()=>{apiView();toast('Balance refreshed')};document.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{rng=b.dataset.r;apiView()})}
 async function keysView(){
- const m=$('#mn');m.innerHTML=`<div class="top">${menuBtn}<span class="mu">API Keys</span><span></span></div><div class="pg"><h1>API Keys</h1><p class="sub">Manage your API keys</p><div class="card" style="margin-bottom:16px"><label>Key name</label><input id="kn" class="f" placeholder="e.g. Production"><button class="btn p" id="kc">Create key</button><div id="kn2"></div></div><div id="kl"><div class="spin"></div></div></div>`;
+ const m=$('#mn');m.innerHTML=`<div class="top">${menuBtn}<span class="mu">API Keys</span><span></span></div><div class="pg"><h1>API Keys</h1><p class="sub">Manage your API keys</p>${!U?`<div class="hint">Please sign in to manage API keys.</div>`:`<div class="card" style="margin-bottom:16px"><label>Key name</label><input id="kn" class="f" placeholder="e.g. Production"><button class="btn p" id="kc">Create key</button><div id="kn2"></div></div><div id="kl"><div class="spin"></div></div>`}</div>`;
+ if(!U)return;
  const load=async()=>{const{data,error}=await sb.from('api_keys').select('*').order('created_at',{ascending:false});$('#kl').innerHTML=error?`<div class="hint">${esc(error.message)}</div>`:data.length?`<div class="list">${data.map(k=>`<div><span><b style="font-weight:500">${esc(k.name)}</b> <span class="mu">${esc(k.key_prefix)}… · ${new Date(k.created_at).toLocaleDateString()}</span> ${k.revoked?'<span class="badge err">revoked</span>':''}</span>${k.revoked?'':`<button class="btn" data-k="${k.id}">Revoke</button>`}</div>`).join('')}</div>`:'<div class="hint">No keys yet.</div>';
   $('#kl').onclick=async e=>{const b=e.target.closest('[data-k]');if(b){await sb.from('api_keys').update({revoked:true}).eq('id',b.dataset.k);load()}}};load();
  $('#kc').onclick=async()=>{const n=$('#kn').value.trim();if(!n)return toast('Enter a name');const raw='vk_'+[...crypto.getRandomValues(new Uint8Array(24))].map(b=>b.toString(16).padStart(2,'0')).join('');
@@ -527,12 +277,13 @@ async function keysView(){
   const{error}=await sb.from('api_keys').insert({name:n,key_prefix:raw.slice(0,9),key_hash:h});if(error)return toast(error.message);
   $('#kn2').innerHTML=`<div class="hint" style="margin-top:12px">Copy now — it won't be shown again:<br><code style="color:var(--mint);word-break:break-all">${raw}</code></div>`;$('#kn').value='';load()}}
 async function billingView(){
- const m=$('#mn');m.innerHTML=`<div class="top">${menuBtn}<span class="mu">Billing</span><span></span></div><div class="pg"><div class="spin"></div></div>`;
- const[pr,u]=await Promise.all([refreshBal(),usage(30)]);if(!pr)return $('.pg').innerHTML=`<div class="hint">No profile found — run schema.sql</div>`;
- $('.pg').innerHTML=`<h1>Billing</h1><p class="sub">Credits and payments</p><div class="grid3"><div class="card"><span class="mu">Balance</span><div class="big">${pr.credit_balance.toLocaleString()}</div></div><div class="card"><span class="mu">Plan allowance</span><div class="big">${pr.credit_total.toLocaleString()}</div></div><div class="card"><span class="mu">Spent (30 days)</span><div class="big">${u.data.reduce((a,e)=>a+e.credits,0)}</div></div></div>
- <div class="hint" style="margin-bottom:16px">No payment provider is connected yet, so purchasing credits is disabled. Connect Stripe (Edge Function + webhook that updates <code>profiles.credit_total</code>) to enable it.</div><button class="btn p" disabled>Buy credits</button>`}
+ const m=$('#mn');m.innerHTML=`<div class="top">${menuBtn}<span class="mu">Billing</span><span></span></div><div class="pg"><h1>Billing</h1><p class="sub">Credits and payments</p>${!U?`<div class="hint">Please sign in to view your billing status.</div>`:`<div class="grid3"><div class="card"><span class="mu">Balance</span><div class="big" id="bb">...</div></div><div class="card"><span class="mu">Plan allowance</span><div class="big" id="bt">...</div></div><div class="card"><span class="mu">Spent (30 days)</span><div class="big" id="bs">...</div></div></div><div class="hint" style="margin-bottom:16px">No payment provider is connected yet, so purchasing credits is disabled.</div><button class="btn p" disabled>Buy credits</button>`}</div>`;
+ if(!U)return;
+ const[pr,u]=await Promise.all([refreshBal(),usage(30)]);
+ if(pr&&$('#bb')){$('#bb').textContent=pr.credit_balance.toLocaleString();$('#bt').textContent=pr.credit_total.toLocaleString();$('#bs').textContent=u.data.reduce((a,e)=>a+e.credits,0);}
+}
 function settingsView(){
- const s=S(),m=$('#mn');m.innerHTML=`<div class="top">${menuBtn}<span class="mu">Settings</span><span></span></div><div class="pg" style="max-width:640px"><h1>Settings</h1><p class="sub">Connect your own AI model (OpenAI-compatible /v1/chat/completions)</p><div class="card"><label>Endpoint URL</label><input id="se" class="f" value="${esc(s.endpoint||'')}" placeholder="https://your-host/v1/chat/completions"><label>Model API key (optional)</label><input id="sk" class="f" type="password" value="${esc(s.apikey||'')}"><label>Model names (comma separated)</label><input id="sm" class="f" value="${esc(s.models||'')}" placeholder="my-model-v1, my-model-fast"><button class="btn p" id="ss">Save</button></div><p class="mu" style="margin-top:12px;font-size:12px">Stored in this browser only. For production, put the model key behind a Supabase Edge Function so it never reaches the client; your model server must allow CORS.</p></div>`;
+ const s=S(),m=$('#mn');m.innerHTML=`<div class="top">${menuBtn}<span class="mu">Settings</span><span></span></div><div class="pg" style="max-width:640px"><h1>Settings</h1><p class="sub">Connect your own AI model (OpenAI-compatible /v1/chat/completions)</p><div class="card"><label>Endpoint URL</label><input id="se" class="f" value="${esc(s.endpoint||'')}" placeholder="https://your-host/v1/chat/completions"><label>Model API key (optional)</label><input id="sk" class="f" type="password" value="${esc(s.apikey||'')}"><label>Model names (comma separated)</label><input id="sm" class="f" value="${esc(s.models||'')}" placeholder="my-model-v1, my-model-fast"><button class="btn p" id="ss">Save</button></div><p class="mu" style="margin-top:12px;font-size:12px">Stored in this browser only.</p></div>`;
  $('#ss').onclick=()=>{localStorage.setItem('venom_s',JSON.stringify({endpoint:$('#se').value.trim(),apikey:$('#sk').value.trim(),models:$('#sm').value.trim()}));toast('Saved')}}
 boot();
 </script></body></html>
