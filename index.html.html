@@ -180,11 +180,21 @@ async function handleAuth(up){
  if(!e || !p) return toast('Enter email and password');
  const r = up ? await sb.auth.signUp({email:e, password:p}) : await sb.auth.signInWithPassword({email:e, password:p});
  if(r.error) return toast(r.error.message);
- if(up && !r.data.session) return toast('Check your email to confirm, then sign in.');
+ 
+ if(up) {
+   if(r.data.session) {
+     toast('Account created & signed in successfully!');
+   } else {
+     toast('Account created! Please check your email to confirm, then sign in.');
+     return; // Agar email confirmation on hai toh modal band mat karo
+   }
+ } else {
+   toast('Successfully signed in!');
+ }
+ 
  U = r.data.user;
  $('#auth-modal').style.display='none';
  shell();
- toast('Successfully signed in!');
 }
 
 async function send(){
